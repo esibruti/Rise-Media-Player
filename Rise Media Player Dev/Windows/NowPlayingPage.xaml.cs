@@ -5,17 +5,15 @@ using Rise.Data.ViewModels;
 using Rise.Models;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Windows.Foundation;
+using Windows.Media;
 using Windows.Media.Playback;
 using Windows.UI.Core;
 using Windows.UI.ViewManagement;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Navigation;
 
 namespace Rise.App.Views
@@ -41,15 +39,6 @@ namespace Rise.App.Views
             set => SetValue(LyricsCountProperty, value);
         }
 
-        /// <summary>
-        /// Whether the album art should be fully visible.
-        /// </summary>
-        private bool UseImmersiveArt
-        {
-            get => (bool)GetValue(UseImmersiveArtProperty);
-            set => SetValue(UseImmersiveArtProperty, value);
-        }
-
         public NowPlayingPage()
         {
             InitializeComponent();
@@ -58,21 +47,7 @@ namespace Rise.App.Views
 
         private void OnPageLoaded(object sender, RoutedEventArgs e)
         {
-            // No need for pointer in events when we're outside compact overlay
-            var mode = ApplicationView.GetForCurrentView().ViewMode;
-            if (mode == ApplicationViewMode.Default)
-            {
-                UpdatePointerStates(true);
-            }
-            else
-            {
-                VisualStateManager.GoToState(this, "CompactOverlayState", true);
-
-                PointerEntered += OnPointerEntered;
-                PointerExited += OnPointerExited;
-                PointerCanceled += OnPointerExited;
-            }
-
+            _ = ApplyVisualizer(SViewModel.VisualizerType);
             MainPlayer.SetMediaPlayer(MPViewModel.Player);
         }
 
@@ -82,9 +57,6 @@ namespace Rise.App.Views
             MPViewModel.Player.PlaybackSession.PositionChanged -= PlaybackSession_PositionChanged;
             MPViewModel.PlayingItemChanged -= MPViewModel_PlayingItemChanged;
 
-            PointerEntered -= OnPointerEntered;
-            PointerExited -= OnPointerExited;
-            PointerCanceled -= OnPointerExited;
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -115,31 +87,10 @@ namespace Rise.App.Views
             }
         }
 
-        private async void OnExitButtonClick(object sender, RoutedEventArgs e)
+        private void OnExitButtonClick(object sender, RoutedEventArgs e)
         {
-            if (Frame.CanGoBack) Frame.GoBack();
-
-            var curr = ApplicationView.GetForCurrentView();
-            if (curr.ViewMode == ApplicationViewMode.CompactOverlay)
-                _ = await curr.TryEnterViewModeAsync(ApplicationViewMode.Default,
-                    ViewModePreferences.CreateDefault(ApplicationViewMode.Default));
-        }
-
-        private void OnPointerEntered(object sender, PointerRoutedEventArgs e)
-            => UpdatePointerStates(true);
-
-        private void OnPointerExited(object sender, PointerRoutedEventArgs e)
-            => UpdatePointerStates(false);
-
-        private void UpdatePointerStates(bool pointerIn)
-        {
-            UseImmersiveArt = !pointerIn;
-
-            if (SViewModel.VisualizerType != 0)
-                if (pointerIn)
-                    _ = ApplyVisualizer(SViewModel.VisualizerType);
-                else
-                    _ = ApplyVisualizer(0);
+            if (Frame.CanGoBack)
+                Frame.GoBack();
         }
 
         private bool ApplyVisualizer(int index) => index switch
@@ -190,32 +141,36 @@ namespace Rise.App.Views
         private async Task FetchLyricsForCurrentItemAsync()
         {
             LyricsList.ItemsSource = null;
-            try
+            if (MPViewModel.PlayingItemType == MediaPlaybackType.Music)
             {
-                var lyricsObj = await MusixmatchHelper.GetSyncedLyricsAsync(MPViewModel.PlayingItemProperties.Title, MPViewModel.PlayingItemProperties.Artist);
-                var body = lyricsObj.Message.Body;
-
-                if (body != null)
+                try
                 {
-                    _lyrics = await Task.Run(() => new List<SyncedLyricItem>(body.Subtitle.Subtitles.Where(i => !string.IsNullOrWhiteSpace(i.Text))));
-                    LyricsCount = _lyrics.Count;
-                    LyricsList.ItemsSource = _lyrics;
+                    var lyricsObj = await MusixmatchHelper.GetSyncedLyricsAsync(MPViewModel.PlayingItemProperties.Title, MPViewModel.PlayingItemProperties.Artist);
+                    var body = lyricsObj.Message.Body;
+
+                    if (body != null)
+                    {
+                        _lyrics = await Task.Run(() => new List<SyncedLyricItem>(body.Subtitle.Subtitles.Where(i => !string.IsNullOrWhiteSpace(i.Text))));
+                        LyricsCount = _lyrics.Count;
+                        LyricsList.ItemsSource = _lyrics;
+
+                        _ = VisualStateManager.GoToState(this, "LyricsAvailableState", true);
+                        return;
+                    }
+                }
+                catch (Exception e)
+                {
+                    e.WriteToOutput();
                 }
             }
-            catch (Exception e)
-            {
-                e.WriteToOutput();
-            }
+
+            _ = VisualStateManager.GoToState(this, "LyricsUnavailableState", true);
         }
     }
 
     // Dependency properties
     public sealed partial class NowPlayingPage
     {
-        private readonly static DependencyProperty UseImmersiveArtProperty =
-            DependencyProperty.Register(nameof(UseImmersiveArt), typeof(bool),
-                typeof(NowPlayingPage), new PropertyMetadata(true));
-
         private readonly static DependencyProperty LyricsCountProperty =
             DependencyProperty.Register(nameof(LyricsCount), typeof(int),
                 typeof(NowPlayingPage), new PropertyMetadata(0));
