@@ -1,5 +1,6 @@
 ﻿using Microsoft.Toolkit.Uwp.UI;
 using Microsoft.Toolkit.Uwp.UI.Animations.Expressions;
+using Rise.App.Converters;
 using Rise.App.UserControls;
 using Rise.App.ViewModels;
 using Rise.Common.Extensions;
@@ -9,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Threading.Tasks;
 using Windows.UI;
 using Windows.UI.Composition;
 using Windows.UI.Xaml;
@@ -37,6 +39,8 @@ namespace Rise.App.Views
 
         private readonly AdvancedCollectionView AlbumsByArtist = new();
 
+        private bool MoreAlbumsExpanded;
+
         private Compositor _compositor;
         private SpriteVisual _backgroundVisual;
 
@@ -52,8 +56,10 @@ namespace Rise.App.Views
             PlaylistHelper.AddPlaylistsToFlyout(AddToBar, AddMediaItemsToPlaylistCommand);
         }
 
-        private void OnPageLoaded(object sender, RoutedEventArgs e)
+        private async void OnPageLoaded(object sender, RoutedEventArgs e)
         {
+            AlbumDuration.Text = await Task.Run(() => TimeSpanToString.GetShortFormat(TimeSpan.FromSeconds(MediaViewModel.Items.Cast<SongViewModel>().Select(s => s.Length).Aggregate((t, t1) => t + t1).TotalSeconds)));
+
             // Load more albums by artist only when necessary
             if (AlbumsByArtist.Count > 0)
                 _ = FindName("MoreAlbumsByArtist");
@@ -164,6 +170,16 @@ namespace Rise.App.Views
         private void AskDiscy_Click(object sender, RoutedEventArgs e)
         {
             DiscyOnSong.IsOpen = true;
+        }
+
+        private void UpDown_Click(object sender, RoutedEventArgs e)
+        {
+            if (MoreAlbumsExpanded)
+                VisualStateManager.GoToState(this, "Collapsed", true);
+            else
+                VisualStateManager.GoToState(this, "Expanded", true);
+
+            MoreAlbumsExpanded = !MoreAlbumsExpanded;
         }
 
         private void CreateImageBackgroundGradientVisual(ScalarNode scrollVerticalOffset)

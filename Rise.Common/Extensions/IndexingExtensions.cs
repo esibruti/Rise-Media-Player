@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Rise.Common.Helpers;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Background;
@@ -51,7 +52,7 @@ namespace Rise.Common.Extensions
         /// an invalid <paramref name="stepSize"/> is specified.</exception>
         public static async IAsyncEnumerable<StorageFile> IndexAsync(this StorageFolder folder,
             QueryOptions options,
-            uint stepSize = 10)
+            uint stepSize = 50)
         {
             if (stepSize < 1)
             {
@@ -59,6 +60,9 @@ namespace Rise.Common.Extensions
             }
 
             int indexedFiles = 0;
+
+            if (PathUtils.PathIsNetworkPath(folder.Path))
+                options.IndexerOption = IndexerOption.DoNotUseIndexer;
 
             // Prepare the query
             StorageFileQueryResult folderQueryResult = folder.CreateFileQueryWithOptions(options);

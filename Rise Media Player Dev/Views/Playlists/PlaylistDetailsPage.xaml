@@ -13,6 +13,7 @@
     xmlns:viewmodels="using:Rise.App.ViewModels"
     x:Name="PageRoot"
     d:Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    Loaded="OnPageLoaded"
     mc:Ignorable="d">
 
     <uc:MediaPageBase.Resources>
@@ -59,9 +60,15 @@
                         <FontIcon Glyph="&#xECC8;" />
                     </MenuFlyoutSubItem.Icon>
 
+                    <MenuFlyoutItem Command="{x:Bind AddSelectedItemToQueueCommand}" Text="{markup:ResourceHelper Name=Queue}">
+                        <MenuFlyoutItem.Icon>
+                            <FontIcon FontFamily="{StaticResource PlayerIconsFontFamily}" Glyph="&#xE93F;" />
+                        </MenuFlyoutItem.Icon>
+                    </MenuFlyoutItem>
+
                     <MenuFlyoutItem Command="{x:Bind AddSelectedItemToPlaylistCommand}" Text="{markup:ResourceHelper Name=NewPlaylist}">
                         <MenuFlyoutItem.Icon>
-                            <FontIcon FontFamily="ms-appx:///Assets/MediaPlayerIcons.ttf#Media Player Fluent Icons" Glyph="&#xE93F;" />
+                            <FontIcon FontFamily="{StaticResource PlayerIconsFontFamily}" Glyph="&#xE93F;" />
                         </MenuFlyoutItem.Icon>
                     </MenuFlyoutItem>
                 </MenuFlyoutSubItem>
@@ -159,17 +166,28 @@
                                 MaxLines="1"
                                 Style="{StaticResource TitleTextBlockStyle}"
                                 Text="{x:Bind SelectedPlaylist.Title}" />
-                            <TextBlock
-                                Margin="0,0,0,8"
-                                FontSize="16"
-                                FontWeight="SemiBold"
-                                Foreground="{ThemeResource ApplicationSecondaryForegroundThemeBrush}"
-                                Style="{StaticResource BodyTextBlockStyle}"
-                                Text="{x:Bind SelectedPlaylist.LocalizedSongsAndVideos}" />
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock
+                                    Margin="0,0,0,8"
+                                    FontSize="16"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Style="{StaticResource BodyTextBlockStyle}"
+                                    Text="{x:Bind SelectedPlaylist.LocalizedSongsAndVideos}" />
+
+                                <TextBlock
+                                    Margin="4,0"
+                                    FontSize="16"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Text="•" />
+
+                                <TextBlock
+                                    x:Name="PlaylistDuration"
+                                    FontSize="16"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
                             <TextBlock
                                 x:Name="Description"
                                 d:Text="Description"
-                                FontWeight="SemiBold"
                                 Foreground="{ThemeResource ApplicationSecondaryForegroundThemeBrush}"
                                 MaxLines="2"
                                 Style="{StaticResource BodyTextBlockStyle}"
@@ -259,7 +277,7 @@
 
                             <MenuFlyoutItem Command="{x:Bind AddVideoToPlaylistCommand}" Text="{markup:ResourceHelper Name=NewPlaylist}">
                                 <MenuFlyoutItem.Icon>
-                                    <FontIcon FontFamily="ms-appx:///Assets/MediaPlayerIcons.ttf#Media Player Fluent Icons" Glyph="&#xE93F;" />
+                                    <FontIcon FontFamily="{StaticResource PlayerIconsFontFamily}" Glyph="&#xE93F;" />
                                 </MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
                         </MenuFlyoutSubItem>
@@ -333,7 +351,51 @@
                     ShowLength="{x:Bind app:App.SViewModel.ShowDurationInSongs, Mode=OneWay}"
                     ShowTrackNumber="{x:Bind app:App.SViewModel.ShowTrackNumberInSongs, Mode=OneWay}"
                     Song="{x:Bind}"
-                    Style="{StaticResource TransparentSongDataStyle}" />
+                    Style="{StaticResource TransparentSongDataStyle}">
+                    <uc:SongData.SideControlContent>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <Button
+                                x:Name="MoveUp"
+                                Width="36"
+                                Height="36"
+                                Padding="0"
+                                Click="MoveUp_Click"
+                                Style="{ThemeResource TransparentButtonStyle}"
+                                Tag="{x:Bind}"
+                                ToolTipService.ToolTip="{markup:ResourceHelper Name=MoveUp}">
+                                <FontIcon FontSize="16" Glyph="&#xE010;" />
+                            </Button>
+
+                            <Button
+                                x:Name="MoveDown"
+                                Width="36"
+                                Height="36"
+                                Padding="0"
+                                Click="MoveBottom_Click"
+                                Style="{ThemeResource TransparentButtonStyle}"
+                                Tag="{x:Bind}"
+                                ToolTipService.ToolTip="{markup:ResourceHelper Name=MoveDown}">
+                                <FontIcon FontSize="16" Glyph="&#xE011;" />
+                            </Button>
+
+                            <Rectangle
+                                Width="1"
+                                Margin="4,8,4,8"
+                                Fill="{ThemeResource ListViewItemPointerOverBackgroundThemeBrush}" />
+
+                            <Button
+                                x:Name="RemoveFromPlaylist"
+                                Width="36"
+                                Height="36"
+                                Padding="0"
+                                Click="RemoveSong_Click"
+                                Style="{ThemeResource TransparentButtonStyle}"
+                                Tag="{x:Bind}">
+                                <FontIcon FontSize="16" Glyph="&#xECC9;" />
+                            </Button>
+                        </StackPanel>
+                    </uc:SongData.SideControlContent>
+                </uc:SongData>
             </DataTemplate>
         </ListView.ItemTemplate>
 
@@ -346,7 +408,51 @@
                     PlayCommand="{Binding MediaViewModel.PlayFromItemCommand, ElementName=PageRoot}"
                     ShowLength="{x:Bind app:App.SViewModel.ShowDurationInSongs, Mode=OneWay}"
                     ShowTrackNumber="{x:Bind app:App.SViewModel.ShowTrackNumberInSongs, Mode=OneWay}"
-                    Song="{x:Bind}" />
+                    Song="{x:Bind}">
+                    <uc:SongData.SideControlContent>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <Button
+                                x:Name="MoveUp"
+                                Width="36"
+                                Height="36"
+                                Padding="0"
+                                Click="MoveUp_Click"
+                                Style="{ThemeResource TransparentButtonStyle}"
+                                Tag="{x:Bind}"
+                                ToolTipService.ToolTip="{markup:ResourceHelper Name=MoveUp}">
+                                <FontIcon FontSize="16" Glyph="&#xE010;" />
+                            </Button>
+
+                            <Button
+                                x:Name="MoveDown"
+                                Width="36"
+                                Height="36"
+                                Padding="0"
+                                Click="MoveBottom_Click"
+                                Style="{ThemeResource TransparentButtonStyle}"
+                                Tag="{x:Bind}"
+                                ToolTipService.ToolTip="{markup:ResourceHelper Name=MoveDown}">
+                                <FontIcon FontSize="16" Glyph="&#xE011;" />
+                            </Button>
+
+                            <Rectangle
+                                Width="1"
+                                Margin="4,8,4,8"
+                                Fill="{ThemeResource ListViewItemPointerOverBackgroundThemeBrush}" />
+
+                            <Button
+                                x:Name="RemoveFromPlaylist"
+                                Width="36"
+                                Height="36"
+                                Padding="0"
+                                Click="RemoveSong_Click"
+                                Style="{ThemeResource TransparentButtonStyle}"
+                                Tag="{x:Bind}">
+                                <FontIcon FontSize="16" Glyph="&#xECC9;" />
+                            </Button>
+                        </StackPanel>
+                    </uc:SongData.SideControlContent>
+                </uc:SongData>
             </DataTemplate>
         </ui:ListViewExtensions.AlternateItemTemplate>
     </ListView>

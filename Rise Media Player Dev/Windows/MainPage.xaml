@@ -17,7 +17,6 @@
     xmlns:uc="using:Rise.App.UserControls"
     xmlns:ui="using:Microsoft.Toolkit.Uwp.UI"
     xmlns:viewmodels="using:Rise.Data.ViewModels"
-    muxc:BackdropMaterial.ApplyToRootOrPageBackground="True"
     Loaded="OnPageLoaded"
     Unloaded="OnPageUnloaded"
     mc:Ignorable="d">
@@ -31,8 +30,8 @@
                         BackgroundSource="Backdrop"
                         FallbackColor="#2C2C2C"
                         TintColor="{x:Bind SViewModel.GlazeColors, Mode=OneWay}"
-                        TintLuminosityOpacity="0"
-                        TintOpacity="0" />
+                        TintLuminosityOpacity="0.07"
+                        TintOpacity="0.1" />
                 </ResourceDictionary>
 
                 <ResourceDictionary x:Key="Light">
@@ -41,8 +40,8 @@
                         BackgroundSource="Backdrop"
                         FallbackColor="#F9F9F9"
                         TintColor="{x:Bind SViewModel.GlazeColors, Mode=OneWay}"
-                        TintLuminosityOpacity="0"
-                        TintOpacity="0" />
+                        TintLuminosityOpacity="0.07"
+                        TintOpacity="0.1" />
                 </ResourceDictionary>
 
                 <ResourceDictionary x:Key="HighContrast">
@@ -324,6 +323,10 @@
                     Icon="UnPin"
                     Text="{markup:ResourceHelper Name=RemoveFromSidebar}" />
             </MenuFlyout>
+
+            <Flyout x:Name="QueueFlyout">
+                <uc:DefaultQueueFlyout Width="300" Height="500" />
+            </Flyout>
         </ResourceDictionary>
     </Page.Resources>
 
@@ -835,14 +838,9 @@
                                 IsSkipForwardEnabled="True"
                                 IsZoomButtonVisible="False"
                                 IsZoomEnabled="False"
+                                QueueButtonCommand="{x:Bind OpenQueueCommand}"
                                 OverlayCommand="{x:Bind GoToNowPlayingCommand}"
                                 ShowAndHideAutomatically="False">
-                                <uc:RiseMediaTransportControls.QueueFlyout>
-                                    <Flyout>
-                                        <uc:DefaultQueueFlyout Width="300" Height="300" />
-                                    </Flyout>
-                                </uc:RiseMediaTransportControls.QueueFlyout>
-
                                 <uc:RiseMediaTransportControls.DisplayItem>
                                     <Button
                                         Margin="4"

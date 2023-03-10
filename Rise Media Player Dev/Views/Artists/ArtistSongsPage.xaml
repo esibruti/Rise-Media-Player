@@ -32,10 +32,11 @@
             Height="340"
             Margin="0,-44,0,0"
             VerticalAlignment="Top"
+            Canvas.ZIndex="0"
             SizeChanged="BackgroundHost_SizeChanged" />
 
         <ScrollViewer x:Name="RootViewer" d:Padding="12">
-            <Grid Padding="0,0,0,120">
+            <Grid Padding="0,48,0,120">
                 <muxc:TeachingTip
                     x:Name="DiscyOnSong"
                     Title="{markup:ResourceHelper Name=/HelpTips/DiscyOnSongH}"
@@ -67,7 +68,10 @@
                                 </Grid.ColumnDefinitions>
 
                                 <Border Width="172" Height="172">
-                                    <Border CornerRadius="86">
+                                    <Border
+                                        BorderBrush="{ThemeResource ControlElevationBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="86">
                                         <Border.Background>
                                             <ImageBrush Stretch="UniformToFill">
                                                 <ImageBrush.ImageSource>
@@ -92,13 +96,29 @@
                                         MaxLines="1"
                                         Style="{StaticResource TitleTextBlockStyle}"
                                         Text="{x:Bind SelectedArtist.Name, Mode=OneWay}" />
-                                    <TextBlock
-                                        x:Name="SongAlbums"
-                                        Margin="0,4"
-                                        FontSize="16"
-                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                        Style="{StaticResource BodyTextBlockStyle}"
-                                        Text="{x:Bind SelectedArtist.LocalizedSongsAndAlbums, Mode=OneWay}" />
+
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock
+                                            x:Name="SongAlbums"
+                                            Margin="0,4"
+                                            FontSize="16"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Style="{StaticResource BodyTextBlockStyle}"
+                                            Text="{x:Bind SelectedArtist.LocalizedSongsAndAlbums, Mode=OneWay}" />
+
+                                        <TextBlock
+                                            Margin="4"
+                                            FontSize="16"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                            Text="•" />
+
+                                        <TextBlock
+                                            x:Name="ArtistDuration"
+                                            Margin="0,4"
+                                            FontSize="16"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+
                                     <TextBlock
                                         x:Name="NoListeners"
                                         FontSize="16"
@@ -133,7 +153,7 @@
                                                 <MenuFlyout x:Name="AddToBar">
                                                     <MenuFlyoutItem Command="{x:Bind AddMediaItemsToPlaylistCommand, Mode=OneTime}" Text="{markup:ResourceHelper Name=NewPlaylist}">
                                                         <MenuFlyoutItem.Icon>
-                                                            <FontIcon FontFamily="ms-appx:///Assets/MediaPlayerIcons.ttf#Media Player Fluent Icons" Glyph="&#xE93F;" />
+                                                            <FontIcon FontFamily="{StaticResource PlayerIconsFontFamily}" Glyph="&#xE93F;" />
                                                         </MenuFlyoutItem.Icon>
                                                     </MenuFlyoutItem>
                                                 </MenuFlyout>
@@ -376,7 +396,7 @@
 
                                                     <MenuFlyoutItem Command="{x:Bind AddAlbumToPlaylistCommand}" Text="{markup:ResourceHelper Name=NewPlaylist}">
                                                         <MenuFlyoutItem.Icon>
-                                                            <FontIcon FontFamily="ms-appx:///Assets/MediaPlayerIcons.ttf#Media Player Fluent Icons" Glyph="&#xE93F;" />
+                                                            <FontIcon FontFamily="{StaticResource PlayerIconsFontFamily}" Glyph="&#xE93F;" />
                                                         </MenuFlyoutItem.Icon>
                                                     </MenuFlyoutItem>
                                                 </MenuFlyoutSubItem>
@@ -455,9 +475,15 @@
                                                         <FontIcon Glyph="&#xECC8;" />
                                                     </MenuFlyoutSubItem.Icon>
 
+                                                    <MenuFlyoutItem Command="{x:Bind AddSelectedItemToQueueCommand}" Text="{markup:ResourceHelper Name=Queue}">
+                                                        <MenuFlyoutItem.Icon>
+                                                            <FontIcon FontFamily="{StaticResource PlayerIconsFontFamily}" Glyph="&#xE93F;" />
+                                                        </MenuFlyoutItem.Icon>
+                                                    </MenuFlyoutItem>
+
                                                     <MenuFlyoutItem Command="{x:Bind AddSelectedItemToPlaylistCommand}" Text="{markup:ResourceHelper Name=NewPlaylist}">
                                                         <MenuFlyoutItem.Icon>
-                                                            <FontIcon FontFamily="ms-appx:///Assets/MediaPlayerIcons.ttf#Media Player Fluent Icons" Glyph="&#xE93F;" />
+                                                            <FontIcon FontFamily="{StaticResource PlayerIconsFontFamily}" Glyph="&#xE93F;" />
                                                         </MenuFlyoutItem.Icon>
                                                     </MenuFlyoutItem>
                                                 </MenuFlyoutSubItem>
@@ -523,7 +549,6 @@
                     <Border
                         x:Name="ArtistAbout"
                         Grid.Row="3"
-                        Margin="0,12,0,0"
                         Style="{StaticResource SettingsCard}"
                         Visibility="Collapsed">
                         <Grid>
@@ -556,35 +581,35 @@
                     </Border>
                 </Grid>
             </Grid>
-
-            <VisualStateManager.VisualStateGroups>
-                <VisualStateGroup x:Name="DataAvailabilityStates">
-                    <VisualState x:Name="Available">
-                        <VisualState.Setters>
-                            <Setter Target="ArtistAbout.Visibility" Value="Visible" />
-                        </VisualState.Setters>
-                    </VisualState>
-                    <VisualState x:Name="Unavailable">
-                        <VisualState.Setters>
-                            <Setter Target="LastFMClickables.Visibility" Value="Collapsed" />
-                            <Setter Target="NoListeners.Visibility" Value="Collapsed" />
-                        </VisualState.Setters>
-                    </VisualState>
-                </VisualStateGroup>
-
-                <VisualStateGroup x:Name="DiscographyStates">
-                    <VisualState x:Name="Expanded" />
-                    <VisualState x:Name="Collapsed">
-                        <VisualState.Setters>
-                            <Setter Target="UpDown.Label" Value="{markup:ResourceHelper Name=Expand}" />
-                            <Setter Target="UpDownIcon.Glyph" Value="&#xE011;" />
-
-                            <Setter Target="SortButton.Visibility" Value="Collapsed" />
-                            <Setter Target="Discography.MaxHeight" Value="18" />
-                        </VisualState.Setters>
-                    </VisualState>
-                </VisualStateGroup>
-            </VisualStateManager.VisualStateGroups>
         </ScrollViewer>
+
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="DataAvailabilityStates">
+                <VisualState x:Name="Available">
+                    <VisualState.Setters>
+                        <Setter Target="ArtistAbout.Visibility" Value="Visible" />
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="Unavailable">
+                    <VisualState.Setters>
+                        <Setter Target="LastFMClickables.Visibility" Value="Collapsed" />
+                        <Setter Target="NoListeners.Visibility" Value="Collapsed" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+
+            <VisualStateGroup x:Name="DiscographyStates">
+                <VisualState x:Name="Expanded" />
+                <VisualState x:Name="Collapsed">
+                    <VisualState.Setters>
+                        <Setter Target="UpDown.Label" Value="{markup:ResourceHelper Name=Expand}" />
+                        <Setter Target="UpDownIcon.Glyph" Value="&#xE011;" />
+
+                        <Setter Target="SortButton.Visibility" Value="Collapsed" />
+                        <Setter Target="Discography.MaxHeight" Value="18" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
     </Grid>
 </uc:MediaPageBase>

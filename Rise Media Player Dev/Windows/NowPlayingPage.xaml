@@ -16,15 +16,14 @@
     xmlns:ui="using:Microsoft.Toolkit.Uwp.UI"
     xmlns:visualizers="using:Rise.App.Visualizers"
     d:Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-    muxc:BackdropMaterial.ApplyToRootOrPageBackground="True"
+    d:DesignHeight="300"
+    d:DesignWidth="320"
     Loaded="OnPageLoaded"
     Unloaded="OnPageUnloaded"
     mc:Ignorable="d">
 
     <Page.Resources>
         <ResourceDictionary>
-            <SolidColorBrush x:Key="MediaTransportControlsPanelBackground" Color="Transparent" />
-
             <conv:StreamToBitmap x:Key="StrmToBmp" />
             <conv:ResourceFallback x:Key="ResFallback" />
             <conv:IntToVisibility x:Key="IntToVis" />
@@ -50,8 +49,15 @@
         <Border
             Grid.ColumnSpan="2"
             HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch"
-            Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}" />
+            VerticalAlignment="Stretch">
+            <Border.Background>
+                <media:AcrylicBrush
+                    BlurAmount="70"
+                    FallbackColor="Transparent"
+                    TintColor="{Binding Color, Source={ThemeResource ApplicationPageBackgroundThemeBrush}}"
+                    TintOpacity="0.7" />
+            </Border.Background>
+        </Border>
 
         <skuc:ExtendedTitleBar
             x:Name="TitleBar"
@@ -61,7 +67,7 @@
             VerticalAlignment="Top"
             Canvas.ZIndex="1">
             <StackPanel Margin="48,0,0,0" Orientation="Horizontal">
-                <FontIcon FontFamily="ms-appx:///Assets/MediaPlayerIcons.ttf#Media Player Fluent Icons" Glyph="&#xE768;" />
+                <FontIcon FontFamily="{StaticResource PlayerIconsFontFamily}" Glyph="&#xE768;" />
 
                 <TextBlock
                     Margin="12,0,0,0"
@@ -94,6 +100,7 @@
         <uc:RiseMediaPlayerElement
             x:Name="MainPlayer"
             Grid.ColumnSpan="2"
+            Margin="4,0,8,8"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
             HorizontalContentAlignment="Stretch"
@@ -122,17 +129,14 @@
                     IsShuffleButtonVisible="True"
                     IsShuffleEnabled="True"
                     IsVolumeButtonVisible="True"
+                    IsZoomButtonVisible="False"
                     ShowAndHideAutomatically="False">
                     <uc:RiseMediaTransportControls.Resources>
-                        <x:Double x:Key="MTCPositionSliderMaximumWidth">302</x:Double>
+                        <SolidColorBrush x:Key="MediaTransportControlsPanelBackground" Color="Transparent" />
+
+                        <x:Double x:Key="MTCPositionSliderMaximumWidth">400</x:Double>
                     </uc:RiseMediaTransportControls.Resources>
-
-                    <uc:RiseMediaTransportControls.QueueFlyout>
-                        <Flyout>
-                            <uc:DefaultQueueFlyout Width="300" Height="300" />
-                        </Flyout>
-                    </uc:RiseMediaTransportControls.QueueFlyout>
-
+                    
                     <uc:RiseMediaTransportControls.DisplayItem>
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -147,14 +151,14 @@
                                 x:DefaultBindMode="OneWay"
                                 ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="190" />
+                                    <ColumnDefinition x:Name="ThumbnailColumn" Width="120" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
                                 <Border
                                     x:Name="ThumbBorder"
-                                    Width="184"
-                                    Height="184"
+                                    Width="120"
+                                    Height="120"
                                     BorderBrush="{ThemeResource ControlElevationBorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="8">
@@ -165,6 +169,7 @@
                                             Opacity="0.2"
                                             Offset="0,4,0" />
                                     </ui:Effects.Shadow>
+
                                     <Border.Background>
                                         <ImageBrush ImageSource="{x:Bind MPViewModel.PlayingItemProperties.Thumbnail, Converter={StaticResource StrmToBmp}}" Stretch="UniformToFill" />
                                     </Border.Background>
@@ -203,7 +208,7 @@
                             <Border
                                 x:Name="SidebarGrid"
                                 Grid.Column="1"
-                                Width="282"
+                                Width="292"
                                 Margin="0,48,24,12"
                                 Canvas.ZIndex="1"
                                 Visibility="Collapsed">
@@ -216,13 +221,12 @@
                                 </ui:Effects.Shadow>
 
                                 <Grid
-                                    Padding="16"
-                                    BorderBrush="{ThemeResource ListViewItemPointerOverBackgroundThemeBrush}"
+                                    BorderBrush="{ThemeResource ControlElevationBorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="8">
                                     <ListView
                                         x:Name="LyricsList"
-                                        Margin="-16,0"
+                                        Padding="4,16,8,16"
                                         ItemContainerStyle="{StaticResource StretchedListViewItemStyle}"
                                         Loaded="OnLyricsListLoaded"
                                         SelectionMode="None">
@@ -244,8 +248,8 @@
                                             <TextBlock
                                                 Padding="0,12"
                                                 HorizontalAlignment="Center"
-                                                Text="Licensed and provided by Musixmatch."
-                                                Visibility="{x:Bind LyricsCount, Mode=OneWay, Converter={StaticResource IntToVis}}" />
+                                                Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
+                                                Text="Licensed and provided by Musixmatch." />
                                         </ListView.Footer>
                                     </ListView>
                                 </Grid>
@@ -272,9 +276,13 @@
                     <VisualState.StateTriggers>
                         <behaviors:IsEqualStateTrigger Value="{x:Bind MPViewModel.PlayingItemType, Mode=OneWay}" To="Video" />
                     </VisualState.StateTriggers>
-                    <VisualState.Setters>
-                        <Setter Target="MainPlayer.VerticalContentAlignment" Value="Bottom" />
 
+                    <VisualState.Setters>
+                        <Setter Target="MainPlayer.VerticalContentAlignment" Value="Stretch" />
+                        <Setter Target="MainPlayer.Margin" Value="0" />
+
+                        <Setter Target="PlayerControls.IsCompact" Value="True" />
+                        <Setter Target="PlayerControls.IsZoomButtonVisible" Value="True" />
                         <Setter Target="PlayerControls.DisplayItemVisibility" Value="Collapsed" />
                         <Setter Target="PlayerControls.ShowAndHideAutomatically" Value="True" />
                     </VisualState.Setters>
@@ -298,6 +306,10 @@
 
                     <VisualState.Setters>
                         <Setter Target="SidebarColumn.Width" Value="Auto" />
+
+                        <Setter Target="ThumbBorder.Width" Value="184" />
+                        <Setter Target="ThumbBorder.Height" Value="184" />
+                        <Setter Target="ThumbnailColumn.Width" Value="190" />
                     </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>

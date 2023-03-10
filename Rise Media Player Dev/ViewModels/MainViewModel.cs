@@ -121,13 +121,6 @@ namespace Rise.App.ViewModels
         /// </summary>
         public async Task GetListsAsync()
         {
-            // Clear the collections
-            Songs.Clear();
-            Albums.Clear();
-            Artists.Clear();
-            Genres.Clear();
-            Videos.Clear();
-
             var songs = await Repository.GetItemsAsync<Song>();
 
             // If we have no songs, we have no albums, artists or genres
@@ -250,7 +243,7 @@ namespace Rise.App.ViewModels
             await Task.WhenAll(songsTask, videosTask);
         }
 
-        private async Task FetchArtistsArtAsync(CancellationToken token)
+        public async Task FetchArtistsArtAsync(CancellationToken token = default)
         {
             using var wc = new HttpClient(new HttpClientHandler()
             {
@@ -263,7 +256,7 @@ namespace Rise.App.ViewModels
 
             foreach (var artist in Artists)
             {
-                if (token.IsCancellationRequested)
+                if (token != null && token.IsCancellationRequested)
                     return;
 
                 // The ms-appx prefix is used for files within the app
