@@ -5,7 +5,6 @@ using Rise.App.Helpers;
 using Rise.App.ViewModels;
 using Rise.App.Views;
 using Rise.Common.Enums;
-using Rise.Common.Extensions;
 using Rise.Data.ViewModels;
 using System;
 using System.Linq;
@@ -113,13 +112,33 @@ namespace Rise.App.UserControls
         }
 
         /// <summary>
-        /// Gets or sets a command that runs whenever the
-        /// queue button is clicked.
+        /// Gets or sets a value that indicates whether the user
+        /// can see the lyrics of the current song.
         /// </summary>
-        public ICommand QueueButtonCommand
+        public bool IsLyricsEnabled
         {
-            get => (ICommand)GetValue(QueueButtonCommandProperty);
-            set => SetValue(QueueButtonCommandProperty, value);
+            get => (bool)GetValue(IsLyricsEnabledProperty);
+            set => SetValue(IsLyricsEnabledProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets a value that indicates whether the lyrics
+        /// button is shown.
+        /// </summary>
+        public bool IsLyricsButtonVisible
+        {
+            get => (bool)GetValue(IsLyricsButtonVisibleProperty);
+            set => SetValue(IsLyricsButtonVisibleProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets a value that indicates whether the lyrics
+        /// button is checked.
+        /// </summary>
+        public bool IsLyricsButtonChecked
+        {
+            get => (bool)GetValue(IsLyricsButtonCheckedProperty);
+            set => SetValue(IsLyricsButtonCheckedProperty, value);
         }
 
         /// <summary>
@@ -203,6 +222,16 @@ namespace Rise.App.UserControls
         }
 
         /// <summary>
+        /// Gets or sets a value that indicates whether the queue
+        /// button is checked.
+        /// </summary>
+        public bool IsQueueButtonChecked
+        {
+            get => (bool)GetValue(IsQueueButtonCheckedProperty);
+            set => SetValue(IsQueueButtonCheckedProperty, value);
+        }
+
+        /// <summary>
         /// Gets or sets a value that indicates whether the add to
         /// playlist button is shown.
         /// </summary>
@@ -220,15 +249,6 @@ namespace Rise.App.UserControls
         {
             get => GetValue(DisplayItemProperty);
             set => SetValue(DisplayItemProperty, value);
-        }
-
-        /// <summary>
-        /// The position of the display item.
-        /// </summary>
-        public DisplayItemPosition DisplayItemPosition
-        {
-            get => (DisplayItemPosition)GetValue(DisplayItemPositionProperty);
-            set => SetValue(DisplayItemPositionProperty, value);
         }
 
         /// <summary>
@@ -274,10 +294,6 @@ namespace Rise.App.UserControls
             DependencyProperty.Register(nameof(DisplayItem), typeof(object),
                 typeof(RiseMediaTransportControls), new PropertyMetadata(null));
 
-        public readonly static DependencyProperty DisplayItemPositionProperty =
-            DependencyProperty.Register(nameof(DisplayItemPosition), typeof(DisplayItemPosition),
-                typeof(RiseMediaTransportControls), new PropertyMetadata(DisplayItemPosition.Left, OnDisplayItemPositionChanged));
-
         public readonly static DependencyProperty DisplayItemVisibilityProperty =
             DependencyProperty.Register(nameof(DisplayItemVisibility), typeof(Visibility),
                 typeof(RiseMediaTransportControls), new PropertyMetadata(Visibility.Collapsed));
@@ -302,6 +318,18 @@ namespace Rise.App.UserControls
             DependencyProperty.Register(nameof(IsShuffleButtonChecked), typeof(bool),
                 typeof(RiseMediaTransportControls), new PropertyMetadata(false));
 
+        public readonly static DependencyProperty IsLyricsEnabledProperty =
+            DependencyProperty.Register(nameof(IsLyricsEnabled), typeof(bool),
+                typeof(RiseMediaTransportControls), new PropertyMetadata(false));
+
+        public readonly static DependencyProperty IsLyricsButtonVisibleProperty =
+            DependencyProperty.Register(nameof(IsLyricsButtonVisible), typeof(bool),
+                typeof(RiseMediaTransportControls), new PropertyMetadata(false));
+
+        public readonly static DependencyProperty IsLyricsButtonCheckedProperty =
+            DependencyProperty.Register(nameof(IsLyricsButtonChecked), typeof(bool),
+                typeof(RiseMediaTransportControls), new PropertyMetadata(false));
+
         public readonly static DependencyProperty FullWindowCommandProperty =
             DependencyProperty.Register(nameof(FullWindowCommand), typeof(ICommand),
                 typeof(RiseMediaTransportControls), new PropertyMetadata(null));
@@ -312,10 +340,6 @@ namespace Rise.App.UserControls
 
         public readonly static DependencyProperty AddToPlaylistCommandProperty =
             DependencyProperty.Register(nameof(AddToPlaylistCommand), typeof(ICommand),
-                typeof(RiseMediaTransportControls), new PropertyMetadata(null));
-
-        public readonly static DependencyProperty QueueButtonCommandProperty =
-            DependencyProperty.Register(nameof(QueueButtonCommand), typeof(ICommand),
                 typeof(RiseMediaTransportControls), new PropertyMetadata(null));
 
         public readonly static DependencyProperty IsOverlayEnabledProperty =
@@ -344,6 +368,10 @@ namespace Rise.App.UserControls
 
         public readonly static DependencyProperty IsQueueButtonVisibleProperty =
             DependencyProperty.Register(nameof(IsQueueButtonVisible), typeof(bool),
+                typeof(RiseMediaTransportControls), new PropertyMetadata(false));
+
+        public readonly static DependencyProperty IsQueueButtonCheckedProperty =
+            DependencyProperty.Register(nameof(IsQueueButtonChecked), typeof(bool),
                 typeof(RiseMediaTransportControls), new PropertyMetadata(false));
 
         public readonly static DependencyProperty IsEqualizerButtonEnabledProperty =
@@ -404,7 +432,6 @@ namespace Rise.App.UserControls
             }
 
             UpdateTimelineDisplayMode(this, TimelineDisplayMode);
-            UpdateDisplayItemPosition(this, DisplayItemPosition);
         }
     }
 
@@ -414,9 +441,6 @@ namespace Rise.App.UserControls
         private static void OnTimelineDisplayModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
             => UpdateTimelineDisplayMode((RiseMediaTransportControls)d, (SliderDisplayModes)e.NewValue);
 
-        private static void OnDisplayItemPositionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-            => UpdateDisplayItemPosition((RiseMediaTransportControls)d, (DisplayItemPosition)e.NewValue);
-
         private static void UpdateTimelineDisplayMode(RiseMediaTransportControls transportControls, SliderDisplayModes displayMode)
         {
             string state = displayMode switch
@@ -425,17 +449,6 @@ namespace Rise.App.UserControls
                 SliderDisplayModes.Minimal => "MinimalTimelineState",
                 SliderDisplayModes.SliderOnly => "SliderOnlyTimelineState",
                 _ => "FullTimelineState"
-            };
-
-            _ = VisualStateManager.GoToState(transportControls, state, true);
-        }
-
-        private static void UpdateDisplayItemPosition(RiseMediaTransportControls transportControls, DisplayItemPosition position)
-        {
-            string state = position switch
-            {
-                DisplayItemPosition.Top => "DisplayItemPositionTopState",
-                _ => "DisplayItemPositionLeftState"
             };
 
             _ = VisualStateManager.GoToState(transportControls, state, true);
@@ -459,8 +472,7 @@ namespace Rise.App.UserControls
                         FileProps = await file.GetBasicPropertiesAsync()
                     };
 
-                    _ = await typeof(SongPropertiesPage).
-                        PlaceInApplicationViewAsync(props, 380, 550, true);
+                    _ = await SongPropertiesPage.TryShowAsync(props);
                 }
             }
             catch { }

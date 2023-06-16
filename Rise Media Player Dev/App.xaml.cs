@@ -1,17 +1,15 @@
 using Microsoft.QueryStringDotNET;
 using Microsoft.Toolkit.Uwp.Notifications;
 using Microsoft.UI.Xaml.Controls;
-using Rise.App.ChangeTrackers;
 using Rise.App.ViewModels;
 using Rise.App.Views;
-using Rise.Common;
 using Rise.Common.Constants;
 using Rise.Common.Enums;
 using Rise.Common.Extensions;
 using Rise.Common.Extensions.Markup;
 using Rise.Common.Helpers;
 using Rise.Data.Messages;
-using Rise.Data.Sources;
+using Rise.Data.Navigation;
 using Rise.Data.ViewModels;
 using Rise.Effects;
 using Rise.NewRepository;
@@ -43,7 +41,7 @@ namespace Rise.App
         // No lazy init (used very early on, so lazy init is not needed)
         public static MainViewModel MViewModel { get; } = new();
         public static SettingsViewModel SViewModel { get; } = new();
-        public static NavViewDataSource NavDataSource { get; } = new();
+        public static NavigationDataSource NavDataSource { get; } = new();
 
         // Lazy init
         private readonly static Lazy<MediaPlaybackViewModel> _mpViewModel
@@ -116,9 +114,7 @@ namespace Rise.App
                             if (args["exceptionName"] != null)
                             {
                                 string text = $"The exception {args["exceptionName"]} happened last time the app was launched.\n\nStack trace:\n{args["message"]}\n{args["stackTrace"]}\nSource: {args["source"]}\nHResult: {args["hresult"]}";
-
-                                _ = typeof(CrashDetailsPage).
-                                    ShowInApplicationViewAsync(text, 600, 600);
+                                _ = await CrashDetailsPage.TryShowAsync(text);
                             }
                         }
                         break;
@@ -195,7 +191,6 @@ namespace Rise.App
                 }
 
                 await Repository.InitializeDatabaseAsync();
-                await MViewModel.GetListsAsync();
             }
 
             if (!prelaunched)
@@ -224,7 +219,6 @@ namespace Rise.App
             var deferral = e.SuspendingOperation.GetDeferral();
             try
             {
-                await NavDataSource.SerializeGroupsAsync();
                 await SuspensionManager.SaveAsync();
             }
             catch (Exception ex)
@@ -264,12 +258,67 @@ namespace Rise.App
         }
 
         private static StorageLibrary OnStorageLibraryRequested(KnownLibraryId id)
-            => StorageLibrary.GetLibraryAsync(id).Get();
+        {
+            var library = StorageLibrary.GetLibraryAsync(id).Get();
+            library.ChangeTracker.Enable();
+            return library;
+        }
     }
 
     // Indexing
     public sealed partial class App
     {
+        // Change tracking
+        public static async Task InitializeChangeTrackingAsync()
+        {
+            if (SViewModel.IndexingFileTrackingEnabled)
+            {
+                _ = await MusicLibrary.TrackBackgroundAsync($"{nameof(MusicLibrary)} background tracker");
+                var result = await VideoLibrary.TrackBackgroundAsync($"{nameof(VideoLibrary)} background tracker");
+
+                // If the trackers were registered successfully, we also have to
+                // track definition changes
+                if (result == BackgroundTaskRegistrationStatus.Successful ||
+                    result == BackgroundTaskRegistrationStatus.AlreadyExists)
+                {
+                    MusicLibrary.DefinitionChanged += OnLibraryDefinitionChanged;
+                    VideoLibrary.DefinitionChanged += OnLibraryDefinitionChanged;
+                    return;
+                }
+            }
+
+            // If file tracking is off, or the background tasks can't be
+            // registered, use the indexing timer
+            RestartIndexingTimer();
+        }
+
+        private static async void OnLibraryDefinitionChanged(StorageLibrary sender, object args)
+        {
+            await MViewModel.StartFullCrawlAsync();
+        }
+
+        protected override async void OnBackgroundActivated(BackgroundActivatedEventArgs args)
+        {
+            var instance = args.TaskInstance;
+            var deferral = instance.GetDeferral();
+
+            await Repository.InitializeDatabaseAsync();
+
+            // Check whether the task was triggered for the music or the video library
+            string name = instance.Task.Name;
+            if (name.Contains(nameof(MusicLibrary)))
+            {
+                await MViewModel.HandleLibraryChangesAsync(ChangedLibraryType.Music);
+            }
+            else if (name.Contains(nameof(VideoLibrary)))
+            {
+                await MViewModel.HandleLibraryChangesAsync(ChangedLibraryType.Videos);
+            }
+
+            deferral?.Complete();
+        }
+
+        // Indexing timer
         public static void RestartIndexingTimer()
         {
             if (IndexingTimer != null && IndexingTimer.Enabled)
@@ -288,26 +337,13 @@ namespace Rise.App
             IndexingTimer.Start();
         }
 
-        public static async Task InitializeChangeTrackingAsync()
-        {
-            RestartIndexingTimer();
-            _ = await KnownFolders.MusicLibrary.
-                TrackForegroundAsync(QueryPresets.SongQueryOptions,
-                SongsTracker.MusicQueryResultChanged);
-
-            _ = await KnownFolders.VideosLibrary.
-                TrackForegroundAsync(QueryPresets.VideoQueryOptions,
-                VideosTracker.VideosLibrary_ContentsChanged);
-
-            MusicLibrary.DefinitionChanged += OnLibraryDefinitionChanged;
-            VideoLibrary.DefinitionChanged += OnLibraryDefinitionChanged;
-        }
-
-        private static async void OnLibraryDefinitionChanged(StorageLibrary sender, object args)
-            => await Task.Run(MViewModel.StartFullCrawlAsync);
-
         private static async void IndexingTimer_Elapsed(object sender, ElapsedEventArgs e)
-            => await Task.Run(MViewModel.StartFullCrawlAsync);
+        {
+            await MViewModel.HandleLibraryChangesAsync(ChangedLibraryType.Both, true);
+
+            await Repository.UpsertQueuedAsync();
+            await Repository.DeleteQueuedAsync();
+        }
     }
 
     // Error handling

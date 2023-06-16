@@ -11,7 +11,7 @@ using Windows.Storage;
 
 namespace Rise.App.ViewModels
 {
-    public partial class VideoViewModel : ViewModel<Video>, IMediaItem
+    public sealed partial class VideoViewModel : ViewModel<Video>, IMediaItem
     {
 
         #region Constructor
@@ -215,7 +215,7 @@ namespace Rise.App.ViewModels
                 return await file.GetVideoAsync();
             }
 
-            return WebHelpers.GetVideoFromUri(uri, Title, Directors, Thumbnail);
+            return await WebHelpers.GetVideoFromUriAsync(uri, Title, Directors, Thumbnail, !uri.IsFile);
         }
         #endregion
     }
@@ -233,7 +233,7 @@ namespace Rise.App.ViewModels
                 Location = item.Source.Uri.ToString(),
                 Year = (uint)item.Source.CustomProperties["Year"],
                 Length = (TimeSpan)item.Source.Duration,
-                Thumbnail = URIs.MusicThumb
+                Thumbnail = URIs.VideoThumb
             };
 
             return Task.FromResult(video);

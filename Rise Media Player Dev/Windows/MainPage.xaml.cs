@@ -3,16 +3,20 @@ using Microsoft.Toolkit.Uwp.UI;
 using Rise.App.Dialogs;
 using Rise.App.Helpers;
 using Rise.App.Settings;
+using Rise.App.UserControls;
 using Rise.App.ViewModels;
+using Rise.App.Web;
 using Rise.Common.Constants;
 using Rise.Common.Enums;
 using Rise.Common.Extensions;
 using Rise.Common.Extensions.Markup;
 using Rise.Common.Helpers;
 using Rise.Common.Interfaces;
+using Rise.Common.Threading;
 using Rise.Data.Json;
-using Rise.Data.Sources;
+using Rise.Data.Navigation;
 using Rise.Data.ViewModels;
+using Rise.NewRepository;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -46,14 +50,14 @@ namespace Rise.App.Views
 
         private JsonBackendController<PlaylistViewModel> PBackend
             => App.MViewModel.PBackend;
-        private NavViewDataSource NavDataSource => App.NavDataSource;
+        private NavigationDataSource NavDataSource => App.NavDataSource;
 
         private static readonly DependencyProperty RightClickedItemProperty
-            = DependencyProperty.Register(nameof(RightClickedItem), typeof(NavViewItemViewModel),
+            = DependencyProperty.Register(nameof(RightClickedItem), typeof(NavigationItemBase),
                 typeof(MainPage), null);
-        private NavViewItemViewModel RightClickedItem
+        private NavigationItemBase RightClickedItem
         {
-            get => (NavViewItemViewModel)GetValue(RightClickedItemProperty);
+            get => (NavigationItemBase)GetValue(RightClickedItemProperty);
             set => SetValue(RightClickedItemProperty, value);
         }
 
@@ -82,6 +86,8 @@ namespace Rise.App.Views
             { "GenresPage", typeof(GenreSongsPage) }
         };
 
+        private DependencyPropertyWatcher<bool> QueueCheckedWatcher;
+
         public MainPage()
         {
             InitializeComponent();
@@ -102,41 +108,68 @@ namespace Rise.App.Views
             coreTitleBar.LayoutMetricsChanged += CoreTitleBar_LayoutMetricsChanged;
 
             var date = DateTime.Now;
-
             if (date != null && date.Month == 4 && date.Day == 1)
                 RiseSpan.Text = "Rice";
+
+            SetupNavigation();
+        }
+
+        private void SetupNavigation()
+        {
+            NavDataSource.PopulateGroups();
+
+            var playlists = (NavigationItemDestination)NavDataSource.GetItem("PlaylistsPage");
+            playlists.Children = PBackend.Items;
         }
 
         private async void OnPageLoaded(object sender, RoutedEventArgs args)
         {
             IndexingTip.Visibility = Visibility.Collapsed;
             UpdateTitleBarItems(NavView);
+
             if (!_loaded)
             {
                 _loaded = true;
-
-                // Sidebar icons
-                await NavDataSource.PopulateGroupsAsync();
 
                 // Startup setting
                 if (ContentFrame.Content == null)
                     ContentFrame.Navigate(Destinations[SViewModel.Open]);
 
-                // Auto indexing
-                if (SViewModel.IndexingFileTrackingEnabled)
-                    await App.InitializeChangeTrackingAsync();
+                // Change tracking
+                await App.InitializeChangeTrackingAsync();
 
-                if (SViewModel.IndexingAtStartupEnabled)
-                    await Task.Run(App.MViewModel.StartFullCrawlAsync);
+                if (SViewModel.IndexingAtStartupEnabled || SViewModel.IsFirstLaunch)
+                {
+                    SViewModel.IsFirstLaunch = false;
+
+                    await Task.Delay(300);
+                    _ = VisualStateManager.GoToState(this, "ScanningState", false);
+
+                    await Task.Run(MViewModel.StartFullCrawlAsync);
+                    return;
+                }
                 else
-                    await MViewModel.FetchArtistsArtAsync();
+                {
+                    // Only run the neccessary steps for startup - change tracking & artist image fetching.
+                    if (SViewModel.FetchArtistPictures)
+                    {
+                        await Task.Delay(300);
+
+                        _ = VisualStateManager.GoToState(this, "FetchingMetadataState", false);
+                        await MViewModel.FetchArtistsArtAsync();
+                    }
+
+                    await MViewModel.HandleLibraryChangesAsync(ChangedLibraryType.Both, true);
+
+                    await Repository.UpsertQueuedAsync();
+                    await Repository.DeleteQueuedAsync();
+
+                    MViewModel_IndexingFinished(null, null);
+                }
             }
 
             if (MViewModel.IsScanning)
-            {
-                await Task.Delay(60);
                 _ = VisualStateManager.GoToState(this, "ScanningState", false);
-            }
         }
 
         private void OnPageUnloaded(object sender, RoutedEventArgs e)
@@ -146,11 +179,18 @@ namespace Rise.App.Views
 
             MViewModel.IndexingStarted -= MViewModel_IndexingStarted;
             MViewModel.IndexingFinished -= MViewModel_IndexingFinished;
+            MViewModel.MetadataFetchingStarted -= MViewModel_MetadataFetchingStarted;
 
             MPViewModel.MediaPlayerRecreated -= OnMediaPlayerRecreated;
             MPViewModel.PlayingItemChanged -= MPViewModel_PlayingItemChanged;
 
+            QueueCheckedWatcher?.Dispose();
+
+            enterFullScreenCommand = null;
+            addToPlaylistCommand = null;
             goToNowPlayingCommand = null;
+
+            Bindings.StopTracking();
         }
 
         protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -159,7 +199,7 @@ namespace Rise.App.Views
                 ContentFrame.SetNavigationState(_navState);
 
             if (MPViewModel.PlayerCreated)
-                MainPlayer.SetMediaPlayer(MPViewModel.Player);
+                InitializePlayerElement(MPViewModel.Player);
             else
                 MPViewModel.MediaPlayerRecreated += OnMediaPlayerRecreated;
 
@@ -200,11 +240,30 @@ namespace Rise.App.Views
 
         private async void OnMediaPlayerRecreated(object sender, MediaPlayer e)
         {
-            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
-            {
-                MainPlayer.SetMediaPlayer(e);
-            });
+            await Dispatcher;
+            InitializePlayerElement(e);
         }
+
+        private void InitializePlayerElement(MediaPlayer player)
+        {
+            MainPlayer.SetMediaPlayer(player);
+
+            QueueCheckedWatcher = new(PlayerControls, RiseMediaTransportControls.IsQueueButtonCheckedProperty);
+            QueueCheckedWatcher.PropertyChanged += OnQueueCheckedChanged;
+        }
+
+        private void OnQueueCheckedChanged(DependencyPropertyWatcher<bool> sender, bool newValue)
+        {
+            if (newValue)
+            {
+                var queueButton = MainPlayer.FindDescendant<AppBarToggleButton>(a => a.Name == "QueueButton");
+                if (queueButton != null)
+                    QueueFlyout.ShowAt(queueButton);
+            }
+        }
+
+        private void QueueFlyout_Closed(object sender, object e)
+            => PlayerControls.IsQueueButtonChecked = false;
 
         [RelayCommand]
         private void EnterFullScreen()
@@ -248,24 +307,18 @@ namespace Rise.App.Views
         }
 
         [RelayCommand]
-        private async Task GoToNowPlayingAsync(ApplicationViewMode newMode)
+        private void GoToNowPlaying(ApplicationViewMode newMode)
         {
             if (MPViewModel.PlayingItem == null) return;
-            if (newMode == ApplicationViewMode.CompactOverlay)
-            {
-                _ = await ApplicationView.GetForCurrentView().
-                    TryEnterViewModeAsync(ApplicationViewMode.CompactOverlay);
 
+            if (newMode == ApplicationViewMode.CompactOverlay)
                 Frame.Navigate(typeof(CompactNowPlayingPage));
-            }
             else
-            {
                 Frame.Navigate(typeof(NowPlayingPage));
-            }
         }
 
-        private async void OnDisplayItemClick(object sender, RoutedEventArgs e)
-            => await GoToNowPlayingAsync(ApplicationViewMode.Default);
+        private void OnDisplayItemClick(object sender, RoutedEventArgs e)
+            => GoToNowPlaying(ApplicationViewMode.Default);
 
         private void OnDisplayItemRightTapped(object sender, RightTappedRoutedEventArgs e)
         {
@@ -364,8 +417,8 @@ namespace Rise.App.Views
 
             if (hasKey)
             {
-                bool hasItem = NavDataSource.TryGetItem(key, out var item);
-                if (hasItem)
+                var item = NavDataSource.GetItem(key);
+                if (item != null)
                     NavView.SelectedItem = item;
             }
         }
@@ -387,25 +440,24 @@ namespace Rise.App.Views
         /// <param name="args">Details about the item invocation.</param>
         private void NavigationView_ItemInvoked(Microsoft.UI.Xaml.Controls.NavigationView sender, Microsoft.UI.Xaml.Controls.NavigationViewItemInvokedEventArgs args)
         {
-            var item = args.InvokedItemContainer?.Tag as NavViewItemViewModel;
-
-            string id = item?.Id;
-            if (!string.IsNullOrEmpty(id))
+            var invoked = args.InvokedItemContainer?.Tag;
+            if (invoked is NavigationItemBase item)
             {
+                string id = item.Id;
                 if (id == "SettingsPage")
                 {
                     Frame.Navigate(typeof(AllSettingsPage));
-                }
-                else if (Guid.TryParse(id, out var guid))
-                {
-                    ContentFrame.Navigate(typeof(PlaylistDetailsPage),
-                        guid, args.RecommendedNavigationTransitionInfo);
                 }
                 else if (ContentFrame.SourcePageType != Destinations[id])
                 {
                     ContentFrame.Navigate(Destinations[id],
                         null, args.RecommendedNavigationTransitionInfo);
                 }
+            }
+            else if (invoked is PlaylistViewModel playlist)
+            {
+                ContentFrame.Navigate(typeof(PlaylistDetailsPage),
+                    playlist.Id, args.RecommendedNavigationTransitionInfo);
             }
         }
 
@@ -418,7 +470,7 @@ namespace Rise.App.Views
         private void NavigationViewItem_AccessKeyInvoked(UIElement sender, AccessKeyInvokedEventArgs args)
         {
             var elm = sender as FrameworkElement;
-            if (elm?.Tag is NavViewItemViewModel item)
+            if (elm?.Tag is NavigationItemBase item)
             {
                 string id = item.Id;
                 if (id == "SettingsPage")
@@ -468,8 +520,7 @@ namespace Rise.App.Views
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            _ = await typeof(Web.FeedbackPage).
-                ShowInApplicationViewAsync(null, 375, 600, true);
+            _ = await FeedbackPage.TryShowAsync();
         }
 
         private async void StartScan_Click(object sender, RoutedEventArgs e)
@@ -486,7 +537,7 @@ namespace Rise.App.Views
         private void NavigationViewItem_ContextRequested(UIElement sender, ContextRequestedEventArgs args)
         {
             var elm = sender as FrameworkElement;
-            var item = elm?.Tag as NavViewItemViewModel;
+            var item = elm?.Tag as NavigationItemDestination;
 
             string flyoutId = item?.FlyoutId;
             if (!string.IsNullOrEmpty(flyoutId))
@@ -494,10 +545,8 @@ namespace Rise.App.Views
                 RightClickedItem = item;
                 if (flyoutId == "DefaultItemFlyout")
                 {
-                    string id = item.Id;
-
-                    bool up = NavDataSource.CanMoveUp(id);
-                    bool down = NavDataSource.CanMoveDown(id);
+                    bool up = NavDataSource.CanMoveUp(item);
+                    bool down = NavDataSource.CanMoveDown(item);
 
                     TopOption.IsEnabled = up;
                     UpOption.IsEnabled = up;
@@ -513,28 +562,6 @@ namespace Rise.App.Views
             }
 
             args.Handled = true;
-        }
-
-        private async void RemoveItem_Click(object sender, RoutedEventArgs e)
-        {
-            var item = RightClickedItem;
-            if (NavDataSource.TryGetItem(item.ParentId, out var parent))
-            {
-                _ = parent.SubItems.Remove(item);
-                if (Guid.TryParse(item.Id, out var id))
-                {
-                    var playlist = MViewModel.Playlists.FirstOrDefault(p => p.Id == id);
-                    if (playlist != null)
-                    {
-                        playlist.IsPinned = false;
-                        await MViewModel.PBackend.SaveAsync();
-                    }
-                }
-            }
-            else
-            {
-                NavDataSource.ToggleItemVisibility(item.Id);
-            }
         }
 
         private async void Messages_Click(object sender, RoutedEventArgs e)
@@ -714,12 +741,6 @@ namespace Rise.App.Views
         private void GoToScanningSettings_Click(object sender, RoutedEventArgs e)
             => _ = Frame.Navigate(typeof(AllSettingsPage));
 
-        [RelayCommand]
-        private void OpenQueue()
-        {
-            var queueButton = MainPlayer.FindDescendant<AppBarButton>(a => a.Name == "QueueButton");
-            QueueFlyout.ShowAt(queueButton);
-        }
 
         private void DismissButton_Click(object sender, RoutedEventArgs e)
             => _ = VisualStateManager.GoToState(this, "NotScanningState", false);

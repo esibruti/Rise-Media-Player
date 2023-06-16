@@ -35,7 +35,7 @@
             PreferredPlacement="Auto"
             Subtitle="{markup:ResourceHelper Name=/HelpTips/DiscyOnPlaylistDesc}">
             <muxc:TeachingTip.HeroContent>
-                <Image Source="ms-appx:///Assets/Branding/discygraphic.png" />
+                <Image Source="ms-appx:///Assets/Branding/DiscyBanner.png" />
             </muxc:TeachingTip.HeroContent>
         </muxc:TeachingTip>
 
@@ -57,13 +57,13 @@
                 Icon="Delete"
                 IsEnabled="False"
                 Label="{markup:ResourceHelper Name=RemoveThing}"
-                Style="{StaticResource AppBarCompactButtonStyle}" />
+                Style="{StaticResource AppBarButtonCompactStyle}" />
             <AppBarButton
                 Command="{x:Bind EditItemCommand}"
                 CommandParameter="{x:Bind SelectedItem, Mode=OneWay}"
                 Icon="Edit"
                 IsEnabled="{x:Bind SelectedItem, Converter={StaticResource NullToBool}, Mode=OneWay}"
-                Style="{StaticResource AppBarCompactButtonStyle}"
+                Style="{StaticResource AppBarButtonCompactStyle}"
                 ToolTipService.ToolTip="{markup:ResourceHelper Name=PropertiesInfo}" />
 
             <AppBarSeparator />
@@ -116,13 +116,6 @@
                         Text="{markup:ResourceHelper Name=ShufflePlaylist}" />
 
                     <MenuFlyoutSeparator />
-
-                    <MenuFlyoutItem
-                        x:Name="PinPlaylist"
-                        Command="{x:Bind SwitchPlaylistPinningStateCommand}"
-                        CommandParameter="{x:Bind SelectedItem, Mode=OneWay}"
-                        Icon="Pin"
-                        Text="{markup:ResourceHelper Name=PinToSidebar}" />
 
                     <MenuFlyoutItem
                         Icon="Share"
@@ -192,21 +185,5 @@
                 </DataTemplate>
             </GridView.ItemTemplate>
         </GridView>
-
-        <VisualStateManager.VisualStateGroups>
-            <VisualStateGroup x:Name="PlaylistPinningStates">
-                <VisualState x:Name="UnpinnedPlaylistState" />
-                <VisualState x:Name="PinnedPlaylistState">
-                    <VisualState.StateTriggers>
-                        <StateTrigger IsActive="{x:Bind SelectedItem.IsPinned, Mode=OneWay}" />
-                    </VisualState.StateTriggers>
-
-                    <VisualState.Setters>
-                        <Setter Target="PinPlaylist.Icon" Value="UnPin" />
-                        <Setter Target="PinPlaylist.Text" Value="{markup:ResourceHelper Name=RemoveFromSidebar}" />
-                    </VisualState.Setters>
-                </VisualState>
-            </VisualStateGroup>
-        </VisualStateManager.VisualStateGroups>
     </Grid>
 </uc:MediaPageBase>

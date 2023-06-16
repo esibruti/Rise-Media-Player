@@ -18,7 +18,7 @@ using Windows.Storage;
 
 namespace Rise.App.ViewModels
 {
-    public partial class SongViewModel : ViewModel<Song>, IMediaItem
+    public sealed partial class SongViewModel : ViewModel<Song>, IMediaItem
     {
 
         #region Constructor
@@ -345,30 +345,6 @@ namespace Rise.App.ViewModels
                 await NewRepository.Repository.UpsertAsync(Model);
             }
         }
-
-        /// <summary>
-        /// Deletes item data from the backend.
-        /// </summary>
-        public async Task DeleteAsync(bool queue = false)
-        {
-            _ = App.MViewModel.Songs.Remove(this);
-
-            if (queue)
-                NewRepository.Repository.QueueRemove(Model);
-            else
-                await NewRepository.Repository.DeleteAsync(Model);
-
-            IEnumerable<AlbumViewModel> albums = App.MViewModel.Albums.Where(a => a.Model.Title == Model.Album
-                                    && a.Model.Artist == Model.AlbumArtist);
-
-            foreach (var album in albums)
-                await album.CheckAvailabilityAsync(queue);
-
-            IEnumerable<ArtistViewModel> artists = App.MViewModel.Artists.Where(a => a.Model.Name == Model.Artist);
-
-            foreach (var artist in artists)
-                await artist.CheckAvailabilityAsync(queue);
-        }
         #endregion
 
         #region Editing
@@ -422,7 +398,7 @@ namespace Rise.App.ViewModels
                 return await file.GetSongAsync();
             }
 
-            return WebHelpers.GetSongFromUri(uri, Title, Artist, Thumbnail);
+            return await WebHelpers.GetSongFromUriAsync(uri, Title, Artist, Thumbnail, !uri.IsFile);
         }
         #endregion
     }

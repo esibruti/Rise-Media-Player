@@ -950,4 +950,8 @@ https://www.youtube.com/watch?v=p7YXXieghto</value>
   <data name="Warning" xml:space="preserve">
     <value>Warning</value>
   </data>
+  <data name="AspectRatio" xml:space="preserve">
+    <value>Aspect Ratio</value>
+    <comment>Aspect Ratio option in the now playing bar.</comment>
+  </data>
 </root>

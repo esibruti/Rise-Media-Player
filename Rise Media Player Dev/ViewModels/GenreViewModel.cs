@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Rise.App.ViewModels
 {
-    public class GenreViewModel : ViewModel<Genre>
+    public sealed class GenreViewModel : ViewModel<Genre>
     {
 
         #region Constructor
@@ -59,22 +59,6 @@ namespace Rise.App.ViewModels
             else
             {
                 await NewRepository.Repository.UpsertAsync(Model);
-            }
-        }
-
-        /// <summary>
-        /// Deletes item data from the backend.
-        /// </summary>
-        public async Task DeleteAsync(bool queue = false)
-        {
-            if (App.MViewModel.Genres.Contains(this))
-            {
-                App.MViewModel.Genres.Remove(this);
-
-                if (queue)
-                    NewRepository.Repository.QueueRemove(Model);
-                else
-                    await NewRepository.Repository.DeleteAsync(Model);
             }
         }
         #endregion
