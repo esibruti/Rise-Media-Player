@@ -347,37 +347,30 @@
         </Grid.Background>
 
         <Grid Canvas.ZIndex="1">
-            <skuc:ExtendedTitleBar
+            <skuc:TitleBar
                 x:Name="AppTitleBar"
                 Height="40"
+                Padding="0,8,0,0"
                 VerticalAlignment="Top"
                 Canvas.ZIndex="1">
-                <Grid
-                    x:Name="AppData"
-                    Margin="0,8,0,0"
-                    ColumnSpacing="12">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="16" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
+                <skuc:TitleBar.Icon>
+                    <IconSourceElement
+                        Width="16"
+                        Height="16"
+                        IconSource="{StaticResource TitleBarAppIconSource}" />
+                </skuc:TitleBar.Icon>
 
-                    <Image Height="16" Source="ms-appx:///Assets/App/Square44x44Logo.targetsize-256.png" />
-                    <RichTextBlock
-                        x:Name="AppTitle"
-                        Grid.Column="1"
-                        FontSize="12"
-                        IsTextSelectionEnabled="False"
-                        Visibility="Collapsed">
-                        <Paragraph x:Name="DefaultTitleParagraph">
-                            <Run
-                                x:Name="RiseSpan"
-                                FontWeight="SemiBold"
-                                Text="Rise" />
-                            <Span>Media Player</Span>
-                        </Paragraph>
-                    </RichTextBlock>
-                </Grid>
-            </skuc:ExtendedTitleBar>
+                <RichTextBlock
+                    x:Name="AppTitle"
+                    FontSize="12"
+                    IsTextSelectionEnabled="False"
+                    Visibility="Collapsed">
+                    <Paragraph x:Name="DefaultTitleParagraph">
+                        <Run x:Name="RiseSpan" FontWeight="SemiBold">Rise</Run>
+                        <Span>Media Player</Span>
+                    </Paragraph>
+                </RichTextBlock>
+            </skuc:TitleBar>
 
             <Grid
                 x:Name="ControlsPanel"
@@ -392,53 +385,8 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <AutoSuggestBox
-                    x:Name="Search"
-                    Height="32"
-                    MaxWidth="530"
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Top"
-                    AutomationProperties.Name="Search"
-                    PlaceholderText="{markup:ResourceHelper Name=SearchPlaceholder}"
-                    QueryIcon="Find"
-                    QuerySubmitted="OnSearchQuerySubmitted"
-                    SuggestionChosen="OnSearchSuggestionChosen"
-                    TextChanged="OnSearchTextChanged">
-                    <AutoSuggestBox.ItemTemplate>
-                        <DataTemplate x:DataType="viewmodels:SearchItemViewModel" x:DefaultBindMode="OneWay">
-                            <Grid Padding="2,10">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="60" />
-                                    <ColumnDefinition />
-                                </Grid.ColumnDefinitions>
 
-                                <Border
-                                    Width="40"
-                                    Height="40"
-                                    CornerRadius="3">
-                                    <Image>
-                                        <Image.Source>
-                                            <BitmapImage
-                                                DecodePixelHeight="40"
-                                                DecodePixelWidth="40"
-                                                UriSource="{x:Bind Thumbnail}" />
-                                        </Image.Source>
-                                    </Image>
-                                </Border>
-
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Text="{x:Bind Title}" />
-                                    <TextBlock Text="{x:Bind Subtitle}" Visibility="{x:Bind local:MainPage.IsStringEmpty(Subtitle)}" />
-                                    <TextBlock
-                                        Margin="0,3,0,0"
-                                        FontSize="13"
-                                        Text="{x:Bind ItemType}" />
-                                </StackPanel>
-                            </Grid>
-                        </DataTemplate>
-                    </AutoSuggestBox.ItemTemplate>
-                </AutoSuggestBox>
-
+                <!--  KEEP THIS SYNC CENTRE BUTTON HERE. TO BE REPURPOSED.  -->
                 <Button
                     x:Name="SyncCentre"
                     Grid.Column="1"
@@ -446,6 +394,7 @@
                     Margin="0,0,0,0"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
+                    Visibility="Collapsed"
                     IsEnabled="False"
                     Style="{StaticResource TransparentButtonStyle}"
                     ToolTipService.ToolTip="{markup:ResourceHelper Name=SyncCenter}">
@@ -494,51 +443,51 @@
                 </Button>
 
                 <Button
+                    x:Name="SettingsButton"
+                    Grid.Column="1"
+                    Width="36"
+                    Height="36"
+                    Margin="46,-12,0,-12"
+                    Padding="0"
+                    VerticalAlignment="Center"
+                    Click="OpenSettings_Click"
+                    Style="{StaticResource TransparentButtonStyle}">
+                    <Button.Content>
+                        <FontIcon Height="24" Glyph="&#xE115;" />
+                    </Button.Content>
+                </Button>
+
+                <Button
+                    x:Name="HelpButton"
+                    Grid.Column="1"
+                    Width="36"
+                    Height="36"
+                    Margin="8,-12,0,-12"
+                    Padding="0"
+                    VerticalAlignment="Center"
+                    Click="OpenSettings_Click"
+                    Style="{StaticResource TransparentButtonStyle}">
+                    <Button.Content>
+                        <FontIcon Height="24" Glyph="&#xE07F;" />
+                    </Button.Content>
+                </Button>
+
+                <Button
                     x:Name="MoreButton"
                     Grid.Column="1"
-                    Height="32"
-                    Margin="46,0,0,0"
+                    Width="36"
+                    Height="36"
+                    Margin="-30,-12,0,-12"
+                    Padding="0"
                     VerticalAlignment="Center"
                     Style="{StaticResource TransparentButtonStyle}"
                     ToolTipService.ToolTip="{markup:ResourceHelper Name=MoreSettings}">
                     <Button.Content>
-                        <FontIcon Height="24" Glyph="&#xE13D;" />
+                        <FontIcon Height="24" Glyph="&#xE10C;" />
                     </Button.Content>
 
                     <Button.Flyout>
                         <MenuFlyout x:Name="ProfileMenu">
-                            <MenuFlyoutItem
-                                x:Name="Acc"
-                                Height="44"
-                                Margin="3"
-                                Click="Account_Click"
-                                FontSize="14"
-                                FontWeight="SemiBold"
-                                Text="{x:Bind LMViewModel.Username, Mode=OneWay}">
-                                <MenuFlyoutItem.Icon>
-                                    <FontIcon x:Name="AccountPic" Glyph="&#xE13D;" />
-                                </MenuFlyoutItem.Icon>
-
-                                <MenuFlyoutItem.Background>
-                                    <ImageBrush ImageSource="/Assets/Unavailable/MissingAccPic.png" />
-                                </MenuFlyoutItem.Background>
-                            </MenuFlyoutItem>
-
-                            <MenuFlyoutSeparator />
-
-                            <MenuFlyoutItem Click="Messages_Click" Text="{markup:ResourceHelper Name=MessagesAndReports}">
-                                <MenuFlyoutItem.Icon>
-                                    <FontIcon Glyph="&#xF716;" />
-                                </MenuFlyoutItem.Icon>
-                            </MenuFlyoutItem>
-
-                            <MenuFlyoutItem Click="Support_Click" Text="{markup:ResourceHelper Name=SupportProject}">
-                                <MenuFlyoutItem.Icon>
-                                    <FontIcon Glyph="&#xE125;" />
-                                </MenuFlyoutItem.Icon>
-                            </MenuFlyoutItem>
-
-                            <MenuFlyoutSeparator />
 
                             <MenuFlyoutItem Click="StartScan_Click" Text="{markup:ResourceHelper Name=Scan}">
                                 <MenuFlyoutItem.Icon>
@@ -551,12 +500,6 @@
                             <MenuFlyoutItem Click="Button_Click" Text="{markup:ResourceHelper Name=Feedback}">
                                 <MenuFlyoutItem.Icon>
                                     <FontIcon Glyph="&#xED15;" />
-                                </MenuFlyoutItem.Icon>
-                            </MenuFlyoutItem>
-
-                            <MenuFlyoutItem Click="OpenSettings_Click" Text="{markup:ResourceHelper Name=AppSettings}">
-                                <MenuFlyoutItem.Icon>
-                                    <FontIcon Glyph="&#xE115;" />
                                 </MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
                         </MenuFlyout>
@@ -580,7 +523,56 @@
             ItemInvoked="NavigationView_ItemInvoked"
             MenuItemTemplateSelector="{StaticResource NavViewItemTemplateSelector}"
             MenuItemsSource="{x:Bind NavDataSource.AllItems.MenuItems}"
-            OpenPaneLength="260">
+            OpenPaneLength="250">
+            <muxc:NavigationView.AutoSuggestBox>
+                <AutoSuggestBox
+                    x:Name="Search"
+                    Height="32"
+                    Margin="-4,4,-4,0"
+                    MaxWidth="530"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Top"
+                    AutomationProperties.Name="Search"
+                    PlaceholderText="{markup:ResourceHelper Name=SearchPlaceholder}"
+                    QueryIcon="Find"
+                    QuerySubmitted="OnSearchQuerySubmitted"
+                    SuggestionChosen="OnSearchSuggestionChosen"
+                    TextChanged="OnSearchTextChanged">
+                    <AutoSuggestBox.ItemTemplate>
+                        <DataTemplate x:DataType="viewmodels:SearchItemViewModel" x:DefaultBindMode="OneWay">
+                            <Grid Padding="2,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60" />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+
+                                <Border
+                                    Width="40"
+                                    Height="40"
+                                    CornerRadius="3">
+                                    <Image>
+                                        <Image.Source>
+                                            <BitmapImage
+                                                DecodePixelHeight="40"
+                                                DecodePixelWidth="40"
+                                                UriSource="{x:Bind Thumbnail}" />
+                                        </Image.Source>
+                                    </Image>
+                                </Border>
+
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{x:Bind Title}" />
+                                    <TextBlock Text="{x:Bind Subtitle}" Visibility="{x:Bind local:MainPage.IsStringEmpty(Subtitle)}" />
+                                    <TextBlock
+                                        Margin="0,3,0,0"
+                                        FontSize="13"
+                                        Text="{x:Bind ItemType}" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </AutoSuggestBox.ItemTemplate>
+                </AutoSuggestBox>
+            </muxc:NavigationView.AutoSuggestBox>
             <Grid>
                 <Frame
                     x:Name="ContentFrame"
@@ -822,8 +814,6 @@
                                 IsFullWindowButtonVisible="True"
                                 IsFullWindowEnabled="True"
                                 IsNextTrackButtonVisible="True"
-                                IsOverlayButtonVisible="True"
-                                IsOverlayEnabled="True"
                                 IsPlaybackRateButtonVisible="True"
                                 IsPlaybackRateEnabled="True"
                                 IsPreviousTrackButtonVisible="True"

@@ -9,7 +9,7 @@ namespace Rise.Data.Navigation
             {
                 Id = "HomePage",
                 Group = "GeneralGroup",
-                DefaultIcon = "\uECA5",
+                DefaultIcon = "\uE10F",
                 Label = "Home",
                 AccessKey = "H",
                 FlyoutId = "DefaultItemFlyout"
@@ -23,7 +23,6 @@ namespace Rise.Data.Navigation
                 AccessKey = "P",
                 FlyoutId = "DefaultItemFlyout"
             },
-
             new NavigationItemHeader()
             {
                 Id = "MusicGroup",
@@ -41,15 +40,6 @@ namespace Rise.Data.Navigation
             },
             new NavigationItemDestination()
             {
-                Id = "ArtistsPage",
-                Group = "MusicGroup",
-                DefaultIcon = "\uE125",
-                Label = "Artists",
-                AccessKey = "T",
-                FlyoutId = "DefaultItemFlyout"
-            },
-            new NavigationItemDestination()
-            {
                 Id = "AlbumsPage",
                 Group = "MusicGroup",
                 DefaultIcon = "\uE93C",
@@ -57,7 +47,15 @@ namespace Rise.Data.Navigation
                 AccessKey = "A",
                 FlyoutId = "DefaultItemFlyout"
             },
-
+            new NavigationItemDestination()
+            {
+                Id = "ArtistsPage",
+                Group = "MusicGroup",
+                DefaultIcon = "\uE125",
+                Label = "Artists",
+                AccessKey = "T",
+                FlyoutId = "DefaultItemFlyout"
+            },
             new NavigationItemHeader()
             {
                 Id = "VideosGroup",
@@ -68,30 +66,10 @@ namespace Rise.Data.Navigation
             {
                 Id = "LocalVideosPage",
                 Group = "VideosGroup",
-                DefaultIcon = "\uE8B2",
+                DefaultIcon = "\uE1D3",
                 Label = "LocalVideos",
-                AccessKey = "V",
+                AccessKey = "L",
                 FlyoutId = "RemoveItemFlyout"
-            },
-
-            new NavigationItemDestination()
-            {
-                Id = "DiscyPage",
-                Group = "GeneralGroup",
-                IsFooter = true,
-                DefaultIcon = "\uE9CE",
-                Label = "Discy",
-                AccessKey = "C",
-                FlyoutId = "RemoveItemFlyout"
-            },
-            new NavigationItemDestination()
-            {
-                Id = "SettingsPage",
-                Group = "NoGroup",
-                DefaultIcon = "\uE115",
-                Label = "Settings",
-                AccessKey = "S",
-                IsFooter = true
             }
         };
     }
