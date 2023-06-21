@@ -33,7 +33,7 @@ namespace Rise.Data.Navigation
             {
                 Id = "SongsPage",
                 Group = "MusicGroup",
-                DefaultIcon = "\uEC4F",
+                DefaultIcon = "\uE8D6",
                 Label = "Songs",
                 AccessKey = "N",
                 FlyoutId = "DefaultItemFlyout"
